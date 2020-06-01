@@ -1,3 +1,5 @@
+package com.animation;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -8,14 +10,21 @@ import java.util.ArrayList;
 public class Main extends JFrame {
     public Main() {
 
-        this.setTitle("Ball Animation");
-        this.setBounds(250, 300, 300, 250);
+        this.setTitle("com.animation.Ball Animation");
+        this.setBounds(300, 400, 400, 350);
         animationPanel.setBackground(Color.GRAY);
         JButton bStart = (JButton) buttonPanel.add(new JButton("Start"));
 
         bStart.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 startAnimation();
+            }
+        });
+        JButton bDelete = (JButton) buttonPanel.add(new JButton("Delete"));
+
+        bDelete.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                stopAnimation();
             }
         });
 
@@ -26,6 +35,10 @@ public class Main extends JFrame {
 
     public void startAnimation() {
         animationPanel.addBall();
+    }
+
+    public void stopAnimation() {
+        animationPanel.stop();
     }
 
     private JPanel buttonPanel = new JPanel();
@@ -39,18 +52,13 @@ public class Main extends JFrame {
 
         public void addBall() {
             listBall.add(new Ball());
+            thread = new Thread(ballGroup, new BallRunnable((Ball) listBall.get(listBall.size() - 1)));
+            thread.start();
+            ballGroup.list();
+        }
 
-            for (int i = 0; i < 2500; i++) {
-                for (int j = 0; j < listBall.size(); j++) {
-                    ((Ball) listBall.get(j)).moveBall(this);
-                    this.paint(this.getGraphics());
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException ex) {
-                        System.out.println(ex.getMessage());
-                    }
-                }
-            }
+        public void stop() {
+            ballGroup.interrupt();
         }
 
         @Override
@@ -58,23 +66,49 @@ public class Main extends JFrame {
             super.paintComponent(g);
 
             for (int i = 0; i < listBall.size(); i++) {
-
                 g.drawImage(Ball.getImg(), ((Ball) listBall.get(i)).x, ((Ball) listBall.get(i)).y, null);
             }
         }
 
+
         ArrayList listBall = new ArrayList();
+        JPanel thisP = this;
+        Thread thread;
+        ThreadGroup ballGroup = new ThreadGroup("com.animation.Ball Group");
+
+        public class BallRunnable implements Runnable {
+
+            public BallRunnable(Ball ball) {
+                this.ball = ball;
+            }
+
+            @Override
+            public void run() {
+                try {
+                    while (!Thread.currentThread().isInterrupted()) {
+                        this.ball.moveBall(thisP);
+                        repaint();
+                        Thread.sleep(1);
+
+                    }
+                } catch (InterruptedException ex) {
+                    System.out.println(ex.getMessage());
+                    listBall.clear();
+                    repaint();
+                }
+            }
+            Ball ball;
+        }
     }
 }
-
 class Ball {
     public static Image getImg() {
         return Ball.ball;
     }
 
     public void moveBall(JPanel container) {
-        Rectangle boundsPanel = container.getBounds();
 
+        Rectangle boundsPanel = container.getBounds();
         x += dx;
         y += dy;
 
